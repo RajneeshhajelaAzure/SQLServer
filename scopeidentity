@@ -60,3 +60,37 @@ Copy code
 |--------------------|
 | 2                  |
 Summary of Differences
+============================================================================================
+
+BEGIN TRY
+    -- Start a transaction
+    BEGIN TRANSACTION;
+
+    -- Your SQL operations here
+    -- For example:
+    INSERT INTO [YourTable] (Column1, Column2) VALUES (Value1, Value2);
+
+    -- If everything is successful, commit the transaction
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    -- Rollback the transaction if there is an error
+    IF @@TRANCOUNT > 0 
+        ROLLBACK TRANSACTION;
+
+    -- Optional: You can log the error details if needed
+    DECLARE @ErrorMessage NVARCHAR(4000);
+    DECLARE @ErrorSeverity INT;
+    DECLARE @ErrorState INT;
+
+    SELECT 
+        @ErrorMessage = ERROR_MESSAGE(),
+        @ErrorSeverity = ERROR_SEVERITY(),
+        @ErrorState = ERROR_STATE();
+
+    -- Call an error handling stored procedure
+    EXEC error_handler_sp @ErrorMessage, @ErrorSeverity, @ErrorState;
+
+    -- Return a custom error code
+    RETURN 55555; 
+END CATCH;
