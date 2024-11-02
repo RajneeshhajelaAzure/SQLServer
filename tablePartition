@@ -1,0 +1,80 @@
+Table Partition 
+
+--Step 1: Add New Filegroups to the Database
+
+-- Adding new filegroups to the database
+ALTER DATABASE YourDatabaseName
+ADD FILEGROUP OrdersFG1;
+
+ALTER DATABASE YourDatabaseName
+ADD FILEGROUP OrdersFG2;
+
+--Step 2: Add Data Files to Each Filegroup
+
+-- Adding data files to each filegroup
+ALTER DATABASE [YourDatabaseName] ADD FILEGROUP OrdersFG1;
+--or
+ALTER DATABASE YourDatabaseName
+ADD FILE (
+    NAME = OrdersFG1_Data,
+    FILENAME = 'C:\SQLData\OrdersFG1.ndf', -- Specify the file path
+    SIZE = 10MB,
+    MAXSIZE = 100MB,
+    FILEGROWTH = 10MB
+) TO FILEGROUP OrdersFG1;
+
+ALTER DATABASE YourDatabaseName
+ADD FILE (
+    NAME = OrdersFG2_Data,
+    FILENAME = 'C:\SQLData\OrdersFG2.ndf', -- Specify the file path
+    SIZE = 10MB,
+    MAXSIZE = 100MB,
+    FILEGROWTH = 10MB
+) TO FILEGROUP OrdersFG2;
+
+--Step 3: Verify the Filegroups
+SELECT  name AS FileGroupName,
+    type_desc AS FileType,
+    physical_name AS FilePath
+FROM
+    sys.master_files
+WHERE
+    database_id = DB_ID('YourDatabaseName');
+
+--Step 4: Partition Scheme Creation
+
+
+CREATE PARTITION FUNCTION OrdersPartitionFunction(INT) 
+AS RANGE LEFT FOR VALUES (1000, 2000, 3000);  -- Example for `OrderID`
+
+-- Create a Partition Scheme:
+CREATE PARTITION SCHEME OrdersPartitionScheme
+AS PARTITION OrdersPartitionFunction
+TO (OrdersFG1, OrdersFG2, OrdersFG3, OrdersFG4);
+
+---Create a New Partitioned Table with the Same Structure:
+CREATE TABLE [dbo].[OrderDetails_Partitioned](
+    [OrderID] [int] NOT NULL,
+    [ProductID] [int] NOT NULL,
+    [UnitPrice] [money] NOT NULL,
+    [Quantity] [smallint] NOT NULL,
+    [Discount] [real] NOT NULL
+) ON OrdersPartitionScheme(OrderID);
+
+
+--Migrate Data:
+INSERT INTO dbo.OrderDetails_Partitioned (OrderID, ProductID, UnitPrice, Quantity, Discount)
+SELECT OrderID, ProductID, UnitPrice, Quantity, Discount FROM dbo.[Order Details];
+
+--Rename the Tables:
+EXEC sp_rename 'dbo.[Order Details]', 'OrderDetails_Old';
+EXEC sp_rename 'dbo.OrderDetails_Partitioned', 'Order Details';
+
+--Rebuild Indexes (Optional):
+CREATE INDEX IX_OrderID ON [Order Details] (OrderID)
+ON OrdersPartitionScheme(OrderID);
+
+
+
+
+ 
