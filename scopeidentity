@@ -1,0 +1,62 @@
+SCOPE_IDENTITY(): Returns the last identity value generated for the current session and scope (safe for use in stored procedures or triggers).
+@@IDENTITY: Returns the last identity value for the current session across all scopes (may include values from triggers).
+IDENT_CURRENT('table_name'): Returns the last identity value for the specified table in any session and any scope (not session-specific).
+
+
+1. SCOPE_IDENTITY()
+Description: Returns the last identity value generated for any table in the current session and the current scope. This means it will only return the identity value from the last insert operation that occurred in the same scope (e.g., within the same stored procedure or batch).
+Example:
+sql
+Copy code
+CREATE TABLE Employees (
+    EmployeeID INT IDENTITY(1,1) PRIMARY KEY,
+    EmployeeName NVARCHAR(100)
+);
+
+INSERT INTO Employees (EmployeeName) VALUES ('Alice');
+-- Get the last identity value generated in the current scope
+SELECT SCOPE_IDENTITY() AS LastIdentityValue;
+Result:
+
+plaintext
+Copy code
+| LastIdentityValue |
+|--------------------|
+| 1                  |
+2. @@IDENTITY
+Description: Returns the last identity value generated for any table in the current session, across all scopes. This means it will return the last identity value created in the session, but it can include identity values created in triggers, which may lead to unexpected results.
+Example:
+sql
+Copy code
+CREATE TABLE Departments (
+    DepartmentID INT IDENTITY(1,1) PRIMARY KEY,
+    DepartmentName NVARCHAR(100)
+);
+
+INSERT INTO Departments (DepartmentName) VALUES ('HR');
+-- Get the last identity value generated in the current session across all scopes
+SELECT @@IDENTITY AS LastIdentityValue;
+Result:
+
+plaintext
+Copy code
+| LastIdentityValue |
+|--------------------|
+| 1                  |
+3. IDENT_CURRENT('table_name')
+Description: Returns the last identity value generated for a specific table in any session and any scope. This means it will give you the last identity value generated for the specified table regardless of the current session or scope.
+Example:
+sql
+Copy code
+-- Assuming we have already inserted into Employees
+INSERT INTO Employees (EmployeeName) VALUES ('Bob');
+-- Get the last identity value generated for the Employees table in any session
+SELECT IDENT_CURRENT('Employees') AS LastIdentityValue;
+Result:
+
+plaintext
+Copy code
+| LastIdentityValue |
+|--------------------|
+| 2                  |
+Summary of Differences
